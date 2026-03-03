@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 export const metadata: Metadata = {
-  title: "College Placement and Careers Trial",
-  description: "Internal careers and placement trial platform"
+  title: "College Placement and Careers Platform",
+  description: "Internal careers and placement management platform"
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -13,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <header className="bg-primary text-white p-4">
           <div className="max-w-6xl mx-auto flex gap-4 items-center">
-            <h1 className="font-semibold">College Trial Platform</h1>
+            <h1 className="font-semibold">College Placement Platform</h1>
             <nav className="flex gap-3 text-sm">
               <Link href="/dashboard">Dashboard</Link>
               <Link href="/placements">Placements</Link>

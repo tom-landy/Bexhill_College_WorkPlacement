@@ -1,5 +1,5 @@
 {
-  "name": "fe-college-trial-app",
+  "name": "college-placement-platform",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -27,6 +27,7 @@
     "nodemailer": "^7.0.10",
     "react": "19.0.0",
     "react-dom": "19.0.0",
+    "xlsx": "^0.18.5",
     "zod": "^3.24.2"
   },
   "devDependencies": {

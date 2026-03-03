@@ -1,4 +1,4 @@
-# College Trial Platform (6-Month Internal Trial)
+# College Placement Platform
 
 Production-oriented internal web app for FE/college careers and work placement operations. Built for daily staff, learner, and employer use with auditable workflows, strict access controls, and evidence exports.
 
@@ -60,14 +60,25 @@ npm run dev
 
 ## Demo accounts
 
-All seeded users use the same password: `TrialPassphrase2026`
+Admin account:
+- User: `Admin` (or `admin@college.local`)
+- Password: `Alpha1234*`
 
-- Admin: `admin@trial.local`
-- Careers Lead: `careers@trial.local`
-- Placement Officer: `placement@trial.local`
-- Tutor: `tutor@trial.local`
-- Employer Supervisor: `employer@trial.local`
-- Students: `student1@trial.local` to `student8@trial.local`
+Other seeded users password: `CollegePassphrase2026`
+
+- Careers Lead: `careers@college.local`
+- Placement Officer: `placement@college.local`
+- Tutor: `tutor@college.local`
+- Employer Supervisor: `employer@college.local`
+- Students: `student1@college.local` to `student8@college.local`
+
+## Student import and placement assignment
+
+- Student CSV/Excel import is available on `/students` for Admin users.
+- Supported upload formats: `.csv`, `.xlsx`, `.xls`
+- Required columns: `name`, `email`, `yearGroup`, `tutorGroup`
+- Optional columns: `tutorEmail`, `pp`, `send`
+- Student-to-employer assignment is available on `/placements` for Admin and Placement Officer users.
 
 ## Seed data included
 
@@ -85,7 +96,7 @@ All seeded users use the same password: `TrialPassphrase2026`
 ### Service architecture
 
 - Render Web Service for Next.js app
-- Render Postgres (paid plan recommended for trial reliability)
+- Render Postgres (paid plan recommended for operational reliability)
 - Render Cron Job for nightly operational tasks
 
 `render.yaml` is included for Blueprint-based provisioning.
@@ -131,11 +142,11 @@ For Render Postgres, create logical backups from Render dashboard and export/dow
 Important limits:
 
 - Logical backups created in Render are retained for 7 days after creation
-- For a 6-month trial, implement long-term off-platform retention (for example secure object storage or institutional backup store)
+- Implement long-term off-platform retention (for example secure object storage or institutional backup store)
 
 ### Plan guidance
 
-Avoid free Postgres plans for this 6-month operational trial. Free plans have durability/retention limitations and can expire, which is unsuitable for funding evidence requirements.
+Avoid free Postgres plans for operational use. Free plans have durability/retention limitations and can expire, which is unsuitable for funding evidence requirements.
 
 ## Exports for evidence and portability
 

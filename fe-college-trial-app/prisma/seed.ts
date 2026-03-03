@@ -33,20 +33,27 @@ async function main() {
   await prisma.emailRecord.deleteMany();
   await prisma.user.deleteMany();
 
-  const password = await hashPassword("TrialPassphrase2026");
+  const defaultPassword = await hashPassword("CollegePassphrase2026");
+  const adminPassword = await hashPassword("Alpha1234*");
 
   const roles: Array<{ name: string; email: string; role: UserRole }> = [
-    { name: "Avery Admin", email: "admin@trial.local", role: "ADMIN" },
-    { name: "Casey Careers", email: "careers@trial.local", role: "CAREERS_LEAD" },
-    { name: "Parker Placement", email: "placement@trial.local", role: "PLACEMENT_OFFICER" },
-    { name: "Toni Tutor", email: "tutor@trial.local", role: "TUTOR" },
-    { name: "Emery Employer", email: "employer@trial.local", role: "EMPLOYER_SUPERVISOR" }
+    { name: "Admin", email: "admin@college.local", role: "ADMIN" },
+    { name: "Casey Careers", email: "careers@college.local", role: "CAREERS_LEAD" },
+    { name: "Parker Placement", email: "placement@college.local", role: "PLACEMENT_OFFICER" },
+    { name: "Toni Tutor", email: "tutor@college.local", role: "TUTOR" },
+    { name: "Emery Employer", email: "employer@college.local", role: "EMPLOYER_SUPERVISOR" }
   ];
 
   const users = await Promise.all(
     roles.map((u) =>
       prisma.user.create({
-        data: { name: u.name, email: u.email, role: u.role, passwordHash: password, isActive: true }
+        data: {
+          name: u.name,
+          email: u.email,
+          role: u.role,
+          passwordHash: u.role === "ADMIN" ? adminPassword : defaultPassword,
+          isActive: true
+        }
       })
     )
   );
@@ -59,9 +66,9 @@ async function main() {
       const user = await prisma.user.create({
         data: {
           name: `Student ${i}`,
-          email: `student${i}@trial.local`,
+          email: `student${i}@college.local`,
           role: "STUDENT",
-          passwordHash: password,
+          passwordHash: defaultPassword,
           isActive: true
         }
       });
@@ -253,7 +260,7 @@ async function main() {
       prisma.careersActivity.create({
         data: {
           title: `Careers Activity ${i + 1}`,
-          description: "Structured careers activity for trial evidence.",
+          description: "Structured careers activity for programme evidence.",
           yearGroup: i < 5 ? "Year 12" : "Year 13",
           dueDate: new Date(Date.now() + (i + 7) * 86400000),
           gatsbyTags: gatsbySets[i % gatsbySets.length]
@@ -340,7 +347,7 @@ async function main() {
       prospectEmployerId: prospect2.id,
       sentByUserId: placementOfficer.id,
       toEmail: prospect2.contactEmail,
-      subject: "Work placement partnership trial",
+      subject: "Work placement partnership",
       body: "Thank you for discussing placement opportunities.",
       status: "SENT",
       sentAt: new Date()
@@ -369,7 +376,7 @@ async function main() {
     ]
   });
 
-  console.log("Seed complete. Demo password: TrialPassphrase2026");
+  console.log("Seed complete. Admin password: Alpha1234*. Other users: CollegePassphrase2026");
 }
 
 main()

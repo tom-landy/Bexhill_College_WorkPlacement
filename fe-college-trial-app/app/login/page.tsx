@@ -1,5 +1,5 @@
-import { RouteShell } from "@/components/RouteShell";
+import { LoginForm } from "@/components/LoginForm";
 
 export default function LoginPage() {
-  return <RouteShell title="Login" detail="Use your work email and password to sign in." />;
+  return <LoginForm />;
 }

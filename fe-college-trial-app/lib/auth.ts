@@ -12,7 +12,7 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Email and Password",
       credentials: {
-        email: { label: "Email", type: "email" },
+        identifier: { label: "User", type: "text" },
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
@@ -21,11 +21,19 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
-        const email = parsed.data.email.toLowerCase();
-        const rateKey = `login:${email}`;
+        const identifier = parsed.data.identifier.trim();
+        const identifierLower = identifier.toLowerCase();
+        const rateKey = `login:${identifierLower}`;
         await assertNotCoolingDown(rateKey);
 
-        const user = await prisma.user.findUnique({ where: { email } });
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { email: { equals: identifierLower, mode: "insensitive" } },
+              { name: { equals: identifier, mode: "insensitive" } }
+            ]
+          }
+        });
 
         if (!user || !user.isActive) {
           await checkAndRecordFailure(rateKey);
@@ -33,7 +41,7 @@ export const authOptions: NextAuthOptions = {
             action: "auth.login.failure",
             entityType: "User",
             entityId: user?.id ?? "unknown",
-            summary: `Login failed for ${email}`,
+            summary: `Login failed for ${identifierLower}`,
             actorUserId: user?.id ?? null
           });
           return null;
@@ -49,7 +57,7 @@ export const authOptions: NextAuthOptions = {
             action: "auth.login.failure",
             entityType: "User",
             entityId: user.id,
-            summary: `Login failure for ${email}`,
+            summary: `Login failure for ${identifierLower}`,
             actorUserId: user.id
           });
           return null;
@@ -61,7 +69,7 @@ export const authOptions: NextAuthOptions = {
           action: "auth.login.success",
           entityType: "User",
           entityId: user.id,
-          summary: `Login success for ${email}`,
+          summary: `Login success for ${identifierLower}`,
           actorUserId: user.id
         });
 
