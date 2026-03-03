@@ -1,0 +1,631 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  CAREERS_LEAD
+  PLACEMENT_OFFICER
+  TUTOR
+  STUDENT
+  EMPLOYER_SUPERVISOR
+}
+
+enum InteractionType {
+  CALL
+  EMAIL
+  MEETING
+  VISIT
+  OTHER
+}
+
+enum OpportunityType {
+  WORK_PLACEMENT
+  APPRENTICESHIP
+  TRAINEESHIP
+  OTHER
+}
+
+enum OpportunityStatus {
+  OPEN
+  CLOSED
+  ON_HOLD
+}
+
+enum OpportunityPipelineStage {
+  NEW
+  CONTACTED
+  MEETING
+  OFFER
+  LIVE
+  FILLED
+  ARCHIVED
+}
+
+enum PlacementStatus {
+  DRAFT
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum EmployerConfirmationStatus {
+  PENDING
+  CONFIRMED
+  DISPUTED
+}
+
+enum ApprovalStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  DISPUTED
+}
+
+enum ActivityCompletionStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum ProspectStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+  CONTACTED
+  PLACEMENT_CREATED
+}
+
+enum OutreachStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+enum EmailRecordStatus {
+  QUEUED
+  SENT
+  FAILED
+}
+
+enum AuthEventType {
+  LOGIN_SUCCESS
+  LOGIN_FAILURE
+  PASSWORD_RESET_REQUESTED
+  PASSWORD_RESET_COMPLETED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         UserRole
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  studentProfile       StudentProfile?
+  tutorStudents        StudentProfile[]          @relation("TutorStudents")
+  employerAccountLink  EmployerAccountLink?
+  authoredInteractions Interaction[]
+  placementsConfirmed  Placement[]               @relation("PlacementConfirmedBy")
+  tutorApprovedLogs    PlacementLog[]            @relation("TutorApprovedBy")
+  employerVerifiedLogs PlacementLog[]            @relation("EmployerVerifiedBy")
+  activityMarks        StudentActivityCompletion[] @relation("ActivityMarkedBy")
+  notesAuthored        Note[]
+  prospectReviews      ProspectEmployer[]        @relation("ProspectReviewedBy")
+  outreachEmails       OutreachEmail[]
+  inviteUses           InviteToken[]             @relation("InviteUsedBy")
+  passwordResetTokens  PasswordResetToken[]
+  auditEvents          AuditEvent[]
+  authEvents           AuthEvent[]
+  accounts             Account[]
+  sessions             Session[]
+  placementStatusChanges PlacementStatusHistory[]
+  placementLogStatusChanges PlacementLogStatusHistory[]
+  prospectStatusChanges ProspectStatusHistory[]
+
+  @@index([role])
+  @@index([isActive])
+}
+
+model AuthEvent {
+  id           String        @id @default(cuid())
+  userId       String
+  type         AuthEventType
+  metadataJson Json?
+  createdAt    DateTime      @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model StudentProfile {
+  id            String   @id @default(cuid())
+  userId        String   @unique
+  yearGroup     String
+  tutorGroup    String
+  tutorUserId   String?
+  pp            Boolean  @default(false)
+  send          Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  user            User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tutorUser       User?                      @relation("TutorStudents", fields: [tutorUserId], references: [id])
+  placements      Placement[]
+  activityCompletions StudentActivityCompletion[]
+  skillsProfile   SkillsProfile?
+  notes           Note[]
+  destinations    Destination[]
+  prospects       ProspectEmployer[]
+
+  @@index([yearGroup])
+  @@index([tutorGroup])
+  @@index([tutorUserId])
+}
+
+model Employer {
+  id          String   @id @default(cuid())
+  name        String
+  sector      String
+  address     String
+  website     String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  contacts     EmployerContact[]
+  interactions Interaction[]
+  opportunities Opportunity[]
+  placements   Placement[]
+
+  @@index([name])
+  @@index([sector])
+}
+
+model EmployerContact {
+  id         String   @id @default(cuid())
+  employerId String
+  name       String
+  email      String
+  phone      String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  employer      Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  placements    Placement[] @relation("SupervisorContact")
+  accountLinks  EmployerAccountLink[]
+  outreachEmails OutreachEmail[]
+  inviteTokens  InviteToken[]
+
+  @@index([employerId])
+  @@index([email])
+}
+
+model EmployerAccountLink {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  employerContactId String
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user            User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  employerContact EmployerContact @relation(fields: [employerContactId], references: [id], onDelete: Cascade)
+
+  @@index([employerContactId])
+}
+
+model Interaction {
+  id         String          @id @default(cuid())
+  employerId String
+  userId     String
+  type       InteractionType
+  notes      String
+  occurredAt DateTime
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  employer Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([employerId])
+  @@index([userId])
+  @@index([occurredAt])
+}
+
+model Opportunity {
+  id               String                   @id @default(cuid())
+  employerId       String
+  type             OpportunityType
+  title            String
+  shortDescription String
+  status           OpportunityStatus
+  pipelineStage    OpportunityPipelineStage
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  employer Employer @relation(fields: [employerId], references: [id], onDelete: Cascade)
+
+  @@index([employerId])
+  @@index([status])
+  @@index([pipelineStage])
+}
+
+model Placement {
+  id                           String                     @id @default(cuid())
+  studentId                     String
+  employerId                    String
+  supervisorContactId           String
+  startDate                     DateTime
+  endDate                       DateTime
+  hoursTarget                   Int
+  status                        PlacementStatus
+  employerConfirmationStatus    EmployerConfirmationStatus @default(PENDING)
+  employerConfirmedAt           DateTime?
+  employerConfirmedByUserId     String?
+  createdAt                     DateTime                   @default(now())
+  updatedAt                     DateTime                   @updatedAt
+
+  student                 StudentProfile                @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  employer                Employer                      @relation(fields: [employerId], references: [id], onDelete: Cascade)
+  supervisorContact       EmployerContact               @relation("SupervisorContact", fields: [supervisorContactId], references: [id], onDelete: Restrict)
+  employerConfirmedByUser User?                        @relation("PlacementConfirmedBy", fields: [employerConfirmedByUserId], references: [id])
+  complianceChecklist     ComplianceChecklist?
+  logs                    PlacementLog[]
+  statusHistory           PlacementStatusHistory[]
+
+  @@index([studentId])
+  @@index([employerId])
+  @@index([supervisorContactId])
+  @@index([status])
+  @@index([startDate])
+  @@index([endDate])
+}
+
+model ComplianceChecklist {
+  id         String   @id @default(cuid())
+  placementId String  @unique
+  itemsJson  Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  placement Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+}
+
+model PlacementLog {
+  id                        String             @id @default(cuid())
+  placementId               String
+  date                      DateTime
+  hours                     Decimal            @db.Decimal(5, 2)
+  reflection                String
+  supervisorName            String?
+  studentSubmittedAt        DateTime?
+  tutorApprovalStatus       ApprovalStatus     @default(PENDING)
+  tutorApprovedById         String?
+  tutorApprovedAt           DateTime?
+  tutorComment              String?
+  employerVerificationStatus VerificationStatus @default(PENDING)
+  employerVerifiedByUserId  String?
+  employerVerifiedAt        DateTime?
+  employerComment           String?
+  createdAt                 DateTime           @default(now())
+  updatedAt                 DateTime           @updatedAt
+
+  placement            Placement                  @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  tutorApprovedBy      User?                      @relation("TutorApprovedBy", fields: [tutorApprovedById], references: [id])
+  employerVerifiedByUser User?                    @relation("EmployerVerifiedBy", fields: [employerVerifiedByUserId], references: [id])
+  statusHistory        PlacementLogStatusHistory[]
+
+  @@index([placementId])
+  @@index([date])
+  @@index([tutorApprovalStatus])
+  @@index([employerVerificationStatus])
+}
+
+model CareersActivity {
+  id          String   @id @default(cuid())
+  title       String
+  description String
+  yearGroup   String
+  dueDate     DateTime
+  gatsbyTags  String[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  completions StudentActivityCompletion[]
+
+  @@index([yearGroup])
+  @@index([dueDate])
+}
+
+model StudentActivityCompletion {
+  id                String                   @id @default(cuid())
+  studentId         String
+  activityId        String
+  status            ActivityCompletionStatus @default(NOT_STARTED)
+  evidenceObjectKey String?
+  evidenceFileName  String?
+  evidenceFileSize  Int?
+  evidenceMimeType  String?
+  submittedAt       DateTime?
+  markedById        String?
+  markedAt          DateTime?
+  markerComment     String?
+  createdAt         DateTime                 @default(now())
+  updatedAt         DateTime                 @updatedAt
+
+  student   StudentProfile  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  activity  CareersActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  markedBy  User?           @relation("ActivityMarkedBy", fields: [markedById], references: [id])
+
+  @@unique([studentId, activityId])
+  @@index([studentId])
+  @@index([activityId])
+  @@index([status])
+}
+
+model SkillsProfile {
+  id         String   @id @default(cuid())
+  studentId  String   @unique
+  itemsJson  Json
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model Note {
+  id         String   @id @default(cuid())
+  studentId  String
+  authorId   String
+  category   String
+  text       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  author  User           @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([authorId])
+}
+
+model Destination {
+  id                  String   @id @default(cuid())
+  studentId           String
+  intendedDestination String
+  actualDestination   String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  student StudentProfile @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+}
+
+model ProspectEmployer {
+  id            String         @id @default(cuid())
+  studentId     String
+  companyName   String
+  contactName   String
+  contactEmail  String
+  contactPhone  String?
+  address       String?
+  sector        String?
+  notes         String?
+  status        ProspectStatus @default(DRAFT)
+  submittedAt   DateTime?
+  reviewedAt    DateTime?
+  reviewedById  String?
+  reviewComment String?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  student       StudentProfile          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  reviewedBy    User?                   @relation("ProspectReviewedBy", fields: [reviewedById], references: [id])
+  outreachEmails OutreachEmail[]
+  statusHistory ProspectStatusHistory[]
+
+  @@index([studentId])
+  @@index([status])
+  @@index([contactEmail])
+}
+
+model OutreachEmail {
+  id                String         @id @default(cuid())
+  prospectEmployerId String?
+  employerContactId String?
+  sentByUserId      String
+  toEmail           String
+  subject           String
+  body              String
+  status            OutreachStatus
+  providerMessageId String?
+  sentAt            DateTime?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+
+  prospectEmployer ProspectEmployer? @relation(fields: [prospectEmployerId], references: [id], onDelete: SetNull)
+  employerContact  EmployerContact?  @relation(fields: [employerContactId], references: [id], onDelete: SetNull)
+  sentByUser       User              @relation(fields: [sentByUserId], references: [id], onDelete: Restrict)
+
+  @@index([prospectEmployerId])
+  @@index([employerContactId])
+  @@index([sentByUserId])
+  @@index([status])
+}
+
+model InviteToken {
+  id                String    @id @default(cuid())
+  tokenHash         String
+  employerContactId String
+  expiresAt         DateTime
+  usedAt            DateTime?
+  usedByUserId      String?
+  createdAt         DateTime  @default(now())
+
+  employerContact EmployerContact @relation(fields: [employerContactId], references: [id], onDelete: Cascade)
+  usedByUser      User?           @relation("InviteUsedBy", fields: [usedByUserId], references: [id])
+
+  @@index([employerContactId])
+  @@index([expiresAt])
+}
+
+model PasswordResetToken {
+  id         String   @id @default(cuid())
+  userId     String
+  tokenHash  String
+  expiresAt  DateTime
+  usedAt     DateTime?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model AuditEvent {
+  id          String   @id @default(cuid())
+  actorUserId String?
+  action      String
+  entityType  String
+  entityId    String
+  summary     String
+  beforeJson  Json?
+  afterJson   Json?
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime @default(now())
+
+  actorUser User? @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([actorUserId])
+  @@index([action])
+  @@index([entityType])
+  @@index([entityId])
+  @@index([createdAt])
+}
+
+model PlacementStatusHistory {
+  id              String        @id @default(cuid())
+  placementId     String
+  fromStatus      PlacementStatus?
+  toStatus        PlacementStatus
+  changedByUserId String
+  changedAt       DateTime      @default(now())
+
+  placement     Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  changedByUser User      @relation(fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([placementId])
+  @@index([changedAt])
+}
+
+model PlacementLogStatusHistory {
+  id                 String             @id @default(cuid())
+  placementLogId     String
+  fromTutorStatus    ApprovalStatus?
+  toTutorStatus      ApprovalStatus?
+  fromEmployerStatus VerificationStatus?
+  toEmployerStatus   VerificationStatus?
+  changedByUserId    String
+  changedAt          DateTime           @default(now())
+
+  placementLog   PlacementLog @relation(fields: [placementLogId], references: [id], onDelete: Cascade)
+  changedByUser  User         @relation(fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([placementLogId])
+  @@index([changedAt])
+}
+
+model ProspectStatusHistory {
+  id                String         @id @default(cuid())
+  prospectEmployerId String
+  fromStatus        ProspectStatus?
+  toStatus          ProspectStatus
+  changedByUserId   String
+  changedAt         DateTime       @default(now())
+
+  prospectEmployer ProspectEmployer @relation(fields: [prospectEmployerId], references: [id], onDelete: Cascade)
+  changedByUser    User             @relation(fields: [changedByUserId], references: [id], onDelete: Restrict)
+
+  @@index([prospectEmployerId])
+  @@index([changedAt])
+}
+
+model EmailRecord {
+  id             String           @id @default(cuid())
+  toEmail        String
+  subject        String
+  body           String
+  status         EmailRecordStatus
+  provider       String
+  providerMessageId String?
+  errorMessage   String?
+  createdAt      DateTime         @default(now())
+}
+
+model AuthRateLimit {
+  id            String   @id @default(cuid())
+  key           String   @unique
+  failCount     Int      @default(0)
+  cooldownUntil DateTime?
+  lastFailureAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}

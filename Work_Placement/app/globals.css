@@ -1,0 +1,21 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: #f3f7f9;
+  color: #16212a;
+}
+
+input, select, textarea {
+  @apply border border-slate-300 rounded px-3 py-2 w-full;
+}
+
+button {
+  @apply rounded px-3 py-2;
+}
